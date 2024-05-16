@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2023 the original author or authors.
+ * Copyright 2024-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ import org.springframework.util.CollectionUtils;
  **/
 public class ScheduledJobSyncConfigurer implements SchedulingConfigurer {
 
-	private static final Logger LOGGER = LogFactory.getLogger(ScheduledJobSyncConfigurer.class);
+	private static final Logger logger = LogFactory.getLogger(ScheduledJobSyncConfigurer.class);
 
 	@Autowired
 	private JobSyncService jobSyncService;
@@ -143,7 +143,7 @@ public class ScheduledJobSyncConfigurer implements SchedulingConfigurer {
 
 	@Override
 	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-		LOGGER.info("spring scheduled job is not empty, start to sync jobs...");
+		logger.info("spring scheduled job is not empty, start to sync jobs...");
 		try {
 			Map<String, JobProperty> jobs = new HashMap<>();
 			if (!CollectionUtils.isEmpty(taskRegistrar.getCronTaskList())) {
@@ -184,10 +184,10 @@ public class ScheduledJobSyncConfigurer implements SchedulingConfigurer {
 			}
 
 			jobSyncService.syncJobs(jobs, properties.getNamespaceSource());
-			LOGGER.info("spring scheduled job is not empty, sync jobs finished.");
+			logger.info("spring scheduled job is not empty, sync jobs finished.");
 		}
 		catch (Exception e) {
-			LOGGER.info("spring scheduled job is not empty, sync jobs failed.", e);
+			logger.info("spring scheduled job is not empty, sync jobs failed.", e);
 			throw new RuntimeException(e);
 		}
 	}

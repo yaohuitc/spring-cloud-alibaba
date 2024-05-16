@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2023 the original author or authors.
+ * Copyright 2024-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = SchedulerxProperties.CONFIG_PREFIX)
 public class SchedulerxProperties implements InitializingBean {
 
-	private static final Logger log = LoggerFactory.getLogger(SchedulerxProperties.class);
+	private static final Logger logger = LoggerFactory.getLogger(SchedulerxProperties.class);
 
 	/**
 	 * schedulerx config prefix.
@@ -781,6 +781,6 @@ public class SchedulerxProperties implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() {
-		log.info("SchedulerxProperties->" + JsonUtil.toJson(this));
+		logger.info("SchedulerxProperties->" + JsonUtil.toJson(this));
 	}
 }
