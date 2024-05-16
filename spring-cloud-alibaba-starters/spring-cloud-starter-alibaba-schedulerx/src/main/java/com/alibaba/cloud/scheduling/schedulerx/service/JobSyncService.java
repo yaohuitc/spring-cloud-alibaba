@@ -356,7 +356,7 @@ public class JobSyncService {
 				long interval = TimeUnit.MILLISECONDS.toSeconds((next2Data.getTime() - nextData.getTime()));
 				if (interval < SchedulerxConstants.SECOND_DELAY_MAX_VALUE) {
 					timeType = TimeType.SECOND_DELAY.getValue();
-					timeExpression = String.valueOf(interval < SchedulerxConstants.SECOND_DELAY_MIN_VALUE ? 
+					timeExpression = String.valueOf(interval < SchedulerxConstants.SECOND_DELAY_MIN_VALUE ?
 							SchedulerxConstants.SECOND_DELAY_MIN_VALUE : interval);
 				}
 				else {

@@ -47,10 +47,30 @@ public final class SchedulerxConstants {
 	 * Second delay min value.
 	 */
 	public static final int SECOND_DELAY_MIN_VALUE = 1;
+
+	/**
+	 * Job timeout default value.
+	 */
 	public static final long JOB_TIMEOUT_DEFAULT = 3600L;
+
+	/**
+	 * Job retry count default value.
+	 */
 	public static final int JOB_RETRY_COUNT_DEFAULT = 3;
+
+	/**
+	 * Job retry interval default value.
+	 */
 	public static final int JOB_RETRY_INTERVAL_DEFAULT = 30;
+
+	/**
+	 * Job alarm channel default value.
+	 */
 	public static final String JOB_ALARM_CHANNEL_DEFAULT = "default";
+
+	/**
+	 * Job model mapreduce alias.
+	 */
 	public static final String JOB_MODEL_MAPREDUCE_ALIAS = "mapreduce";
 
 	@Override
