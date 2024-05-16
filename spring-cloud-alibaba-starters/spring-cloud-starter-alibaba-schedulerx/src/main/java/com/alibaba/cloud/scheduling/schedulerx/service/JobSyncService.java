@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2023 the original author or authors.
+ * Copyright 2024-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import com.alibaba.cloud.scheduling.schedulerx.JobProperty;
 import com.alibaba.cloud.scheduling.schedulerx.SchedulerxProperties;
+import com.alibaba.cloud.scheduling.schedulerx.constants.SchedulerxConstants;
 import com.alibaba.cloud.scheduling.schedulerx.util.CronExpression;
 import com.alibaba.schedulerx.common.domain.ContactInfo;
+import com.alibaba.schedulerx.common.domain.ExecuteMode;
 import com.alibaba.schedulerx.common.domain.JobType;
 import com.alibaba.schedulerx.common.domain.TimeType;
 import com.alibaba.schedulerx.common.sdk.common.MonitorConfig;
@@ -60,9 +63,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class JobSyncService {
 
-	private static final Logger LOGGER = LogFactory.getLogger(JobSyncService.class);
-
-	private static final String NAMESPACE_SOURCE_SPRINGBOOT = "springboot";
+	private static final Logger logger = LogFactory.getLogger(JobSyncService.class);
 
 	@Autowired
 	private SchedulerxProperties properties;
@@ -70,9 +71,9 @@ public class JobSyncService {
 	private DefaultAcsClient client;
 
 	private synchronized DefaultAcsClient getClient() {
-		//build aliyun pop client
+		// build aliyun pop client
 		if (client == null) {
-			DefaultProfile.addEndpoint(properties.getRegionId(), "schedulerx2", "schedulerx.aliyuncs.com");
+			DefaultProfile.addEndpoint(properties.getRegionId(), SchedulerxConstants.ALIYUN_POP_PRODUCT, SchedulerxConstants.ALIYUN_POP_SCHEDULERX_ENDPOINT);
 			if (StringUtils.isNotEmpty(properties.getAliyunRamRole())) {
 				DefaultProfile profile = DefaultProfile.getProfile(properties.getRegionId());
 				InstanceProfileCredentialsProvider provider = new InstanceProfileCredentialsProvider(
@@ -92,7 +93,7 @@ public class JobSyncService {
 	/**
 	 * Sync job config.
 	 *
-	 * @param jobs job configs
+	 * @param jobs            job configs
 	 * @param namespaceSource namespace source
 	 * @throws Exception sync job config exception
 	 */
@@ -136,12 +137,12 @@ public class JobSyncService {
 	 */
 	public boolean syncNamespace(DefaultAcsClient client) throws Exception {
 		if (StringUtils.isEmpty(properties.getNamespace())) {
-			LOGGER.error("please set {}.namespace", SchedulerxProperties.CONFIG_PREFIX);
+			logger.error("please set {}.namespace", SchedulerxProperties.CONFIG_PREFIX);
 			throw new IOException(String.format("please set %s.namespace", SchedulerxProperties.CONFIG_PREFIX));
 		}
 
 		if (StringUtils.isEmpty(properties.getNamespaceName())) {
-			LOGGER.error("please set {}.namespaceName", SchedulerxProperties.CONFIG_PREFIX);
+			logger.error("please set {}.namespaceName", SchedulerxProperties.CONFIG_PREFIX);
 			throw new IOException(String.format("please set %s.namespaceName", SchedulerxProperties.CONFIG_PREFIX));
 		}
 
@@ -151,7 +152,7 @@ public class JobSyncService {
 		request.setSource(getNamespaceSource());
 		CreateNamespaceResponse response = client.getAcsResponse(request);
 		if (response.getSuccess()) {
-			LOGGER.info(JsonUtil.toJson(response));
+			logger.info(JsonUtil.toJson(response));
 			return true;
 		}
 		else {
@@ -165,22 +166,22 @@ public class JobSyncService {
 	 *
 	 * @param client pop client
 	 * @return sync app group result
-	 * @throws IOException sync app group exception.
+	 * @throws IOException     sync app group exception.
 	 * @throws ClientException sync app group pop client exception.
 	 */
 	public boolean syncAppGroup(DefaultAcsClient client) throws IOException, ClientException {
 		if (StringUtils.isEmpty(properties.getAppName())) {
-			LOGGER.error("please set {}.appName", SchedulerxProperties.CONFIG_PREFIX);
+			logger.error("please set {}.appName", SchedulerxProperties.CONFIG_PREFIX);
 			throw new IOException(String.format("please set %s.appName", SchedulerxProperties.CONFIG_PREFIX));
 		}
 
 		if (StringUtils.isEmpty(properties.getAppKey())) {
-			LOGGER.error("please set {}.appKey", SchedulerxProperties.CONFIG_PREFIX);
+			logger.error("please set {}.appKey", SchedulerxProperties.CONFIG_PREFIX);
 			throw new IOException(String.format("please set %s.appKey", SchedulerxProperties.CONFIG_PREFIX));
 		}
 
 		if (StringUtils.isEmpty(properties.getGroupId())) {
-			LOGGER.error("please set {}.groupId", SchedulerxProperties.CONFIG_PREFIX);
+			logger.error("please set {}.groupId", SchedulerxProperties.CONFIG_PREFIX);
 			throw new IOException(String.format("please set %s.groupId", SchedulerxProperties.CONFIG_PREFIX));
 		}
 
@@ -201,7 +202,7 @@ public class JobSyncService {
 		}
 		CreateAppGroupResponse response = client.getAcsResponse(request);
 		if (response.getSuccess()) {
-			LOGGER.info(JsonUtil.toJson(response));
+			logger.info(JsonUtil.toJson(response));
 			return true;
 		}
 		else {
@@ -212,8 +213,8 @@ public class JobSyncService {
 	/**
 	 * Get job config info.
 	 *
-	 * @param client pop client
-	 * @param jobName job name
+	 * @param client          pop client
+	 * @param jobName         job name
 	 * @param namespaceSource namespace source
 	 * @return job config info.
 	 * @throws Exception get job config info exception.
@@ -235,9 +236,9 @@ public class JobSyncService {
 	/**
 	 * create job.
 	 *
-	 * @param client pop client
-	 * @param jobName job name
-	 * @param jobProperty job property
+	 * @param client          pop client
+	 * @param jobName         job name
+	 * @param jobProperty     job property
 	 * @param namespaceSource namespace source
 	 * @throws Exception create job exception
 	 */
@@ -250,15 +251,15 @@ public class JobSyncService {
 		request.setParameters(jobProperty.getJobParameter());
 
 		if (jobProperty.getJobType().equals(JobType.JAVA.getKey())) {
-			request.setJobType("java");
+			request.setJobType(JobType.JAVA.getKey());
 			request.setClassName(jobProperty.getClassName());
 		}
 		else {
 			request.setJobType(jobProperty.getJobType());
 		}
 
-		if (jobProperty.getJobModel().equals("mapreduce")) {
-			request.setExecuteMode("batch");
+		if (SchedulerxConstants.JOB_MODEL_MAPREDUCE_ALIAS.equals(jobProperty.getJobModel())) {
+			request.setExecuteMode(ExecuteMode.BATCH.getKey());
 		}
 		else {
 			request.setExecuteMode(jobProperty.getJobModel());
@@ -280,10 +281,11 @@ public class JobSyncService {
 			Date nextData = cronExpression.getTimeAfter(now);
 			Date next2Data = cronExpression.getTimeAfter(nextData);
 			if (nextData != null && next2Data != null) {
-				long interval = (next2Data.getTime() - nextData.getTime()) / 1000;
-				if (interval < 60) {
+				long interval = TimeUnit.MILLISECONDS.toSeconds((next2Data.getTime() - nextData.getTime()));
+				if (interval < SchedulerxConstants.SECOND_DELAY_MAX_VALUE) {
 					request.setTimeType(TimeType.SECOND_DELAY.getValue());
-					request.setTimeExpression(String.valueOf(interval < 1 ? 1 : interval));
+					request.setTimeExpression(String.valueOf(interval < SchedulerxConstants.SECOND_DELAY_MIN_VALUE ?
+							SchedulerxConstants.SECOND_DELAY_MIN_VALUE : interval));
 				}
 				else {
 					request.setTimeType(TimeType.CRON.getValue());
@@ -312,14 +314,14 @@ public class JobSyncService {
 
 		request.setTimeoutEnable(true);
 		request.setTimeoutKillEnable(true);
-		request.setSendChannel("default");
+		request.setSendChannel(SchedulerxConstants.JOB_ALARM_CHANNEL_DEFAULT);
 		request.setFailEnable(true);
-		request.setTimeout(3600L);
-		request.setMaxAttempt(3);
-		request.setAttemptInterval(30);
+		request.setTimeout(SchedulerxConstants.JOB_TIMEOUT_DEFAULT);
+		request.setMaxAttempt(SchedulerxConstants.JOB_RETRY_COUNT_DEFAULT);
+		request.setAttemptInterval(SchedulerxConstants.JOB_RETRY_INTERVAL_DEFAULT);
 		CreateJobResponse response = client.getAcsResponse(request);
 		if (response.getSuccess()) {
-			LOGGER.info("create schedulerx job successfully, jobId={}, jobName={}", response.getData().getJobId(), jobName);
+			logger.info("create schedulerx job successfully, jobId={}, jobName={}", response.getData().getJobId(), jobName);
 		}
 		else {
 			throw new IOException("create schedulerx job failed, jobName=" + jobName + ", message=" + response.getMessage());
@@ -329,18 +331,18 @@ public class JobSyncService {
 	/**
 	 * update job.
 	 *
-	 * @param client pop client
-	 * @param jobConfigInfo job config info
-	 * @param jobProperty job property
+	 * @param client          pop client
+	 * @param jobConfigInfo   job config info
+	 * @param jobProperty     job property
 	 * @param namespaceSource namespace source
 	 * @throws Exception update job exception
 	 */
 	private void updateJob(DefaultAcsClient client, JobConfigInfo jobConfigInfo, JobProperty jobProperty, String namespaceSource) throws Exception {
 		String executeMode = jobProperty.getJobModel();
-		if (jobProperty.getJobModel().equals("mapreduce")) {
-			executeMode = "batch";
+		if (SchedulerxConstants.JOB_MODEL_MAPREDUCE_ALIAS.equals(jobProperty.getJobModel())) {
+			executeMode = ExecuteMode.BATCH.getKey();
 		}
-		int timeType = TimeType.CRON.getValue();
+		int timeType;
 		String timeExpression = null;
 		if (StringUtils.isNotEmpty(jobProperty.getCron()) && StringUtils.isNotEmpty(jobProperty.getOneTime())) {
 			throw new IOException("cron and oneTime shouldn't set together");
@@ -351,10 +353,11 @@ public class JobSyncService {
 			Date nextData = cronExpression.getTimeAfter(now);
 			Date next2Data = cronExpression.getTimeAfter(nextData);
 			if (nextData != null && next2Data != null) {
-				long interval = (next2Data.getTime() - nextData.getTime()) / 1000;
-				if (interval < 60) {
+				long interval = TimeUnit.MILLISECONDS.toSeconds((next2Data.getTime() - nextData.getTime()));
+				if (interval < SchedulerxConstants.SECOND_DELAY_MAX_VALUE) {
 					timeType = TimeType.SECOND_DELAY.getValue();
-					timeExpression = String.valueOf(interval < 1 ? 1 : interval);
+					timeExpression = String.valueOf(interval < SchedulerxConstants.SECOND_DELAY_MIN_VALUE ? 
+							SchedulerxConstants.SECOND_DELAY_MIN_VALUE : interval);
 				}
 				else {
 					timeType = TimeType.CRON.getValue();
@@ -374,14 +377,12 @@ public class JobSyncService {
 			timeType = TimeType.API.getValue();
 		}
 
-		boolean needUpdate = false;
 		if (!jobConfigInfo.getDescription().equals(jobProperty.getDescription())
 				|| !jobConfigInfo.getClassName().equals(jobProperty.getClassName())
 				|| !jobConfigInfo.getParameters().equals(jobProperty.getJobParameter())
 				|| !jobConfigInfo.getExecuteMode().equals(executeMode)
 				|| jobConfigInfo.getTimeConfig().getTimeType() != timeType
 				|| !jobConfigInfo.getTimeConfig().getTimeExpression().equals(timeExpression)) {
-			needUpdate = true;
 
 			UpdateJobRequest request = new UpdateJobRequest();
 			request.setNamespace(properties.getNamespace());
@@ -404,15 +405,15 @@ public class JobSyncService {
 
 			request.setTimeoutEnable(true);
 			request.setTimeoutKillEnable(true);
-			request.setSendChannel("default");
+			request.setSendChannel(SchedulerxConstants.JOB_ALARM_CHANNEL_DEFAULT);
 			request.setFailEnable(true);
-			request.setTimeout(3600L);
-			request.setMaxAttempt(3);
-			request.setAttemptInterval(30);
+			request.setTimeout(SchedulerxConstants.JOB_TIMEOUT_DEFAULT);
+			request.setMaxAttempt(SchedulerxConstants.JOB_RETRY_COUNT_DEFAULT);
+			request.setAttemptInterval(SchedulerxConstants.JOB_RETRY_INTERVAL_DEFAULT);
 
 			UpdateJobResponse response = client.getAcsResponse(request);
 			if (response.getSuccess()) {
-				LOGGER.info("update schedulerx job successfully, jobId={}, jobName={}", jobConfigInfo.getJobId(), jobConfigInfo.getName());
+				logger.info("update schedulerx job successfully, jobId={}, jobName={}", jobConfigInfo.getJobId(), jobConfigInfo.getName());
 			}
 			else {
 				throw new IOException("update schedulerx job failed, jobName=" + jobConfigInfo.getName() + ", message=" + response.getMessage());
@@ -427,7 +428,7 @@ public class JobSyncService {
 	 */
 	private String getNamespaceSource() {
 		if (StringUtils.isEmpty(properties.getNamespaceSource())) {
-			return NAMESPACE_SOURCE_SPRINGBOOT;
+			return SchedulerxConstants.NAMESPACE_SOURCE_SPRINGBOOT;
 		}
 		return properties.getNamespaceSource();
 	}
